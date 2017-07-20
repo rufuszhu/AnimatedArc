@@ -1,5 +1,6 @@
 package com.example.rzhu.animatedarc;
 
+import android.animation.ValueAnimator;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
@@ -8,6 +9,7 @@ import android.support.annotation.NonNull;
 import android.support.v4.content.ContextCompat;
 import android.util.AttributeSet;
 import android.view.View;
+import android.view.animation.DecelerateInterpolator;
 
 /**
  * Created by rzhu on 7/19/2017.
@@ -16,7 +18,7 @@ import android.view.View;
 public class AnimateArcView extends View
 {
 	private static final int STROKE_WIDTH = 20;
-	private Paint mBasePaint, mDegreesPaint, mCenterPaint, mRectPaint;
+	private Paint mDegreesPaint, mRectPaint;
 	private RectF mRect;
 	private int centerX, centerY, radius;
 
@@ -41,9 +43,36 @@ public class AnimateArcView extends View
 		mDegreesPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 		mDegreesPaint.setStyle(Paint.Style.STROKE);
 		mDegreesPaint.setStrokeWidth(STROKE_WIDTH);
-		mDegreesPaint.setColor(ContextCompat.getColor(getContext(), R.color.colorPrimaryDark));
+		mDegreesPaint.setStrokeCap(Paint.Cap.ROUND);
+		mDegreesPaint.setColor(ContextCompat.getColor(getContext(), R.color.highlight_yellow));
 	}
 
+	public void startAnimation(){
+		ValueAnimator valueAnimator = ValueAnimator.ofInt(STROKE_WIDTH, 100);
+		valueAnimator.setDuration(1000);
+		valueAnimator.setInterpolator(new DecelerateInterpolator());
+
+		valueAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener()
+		{
+			public void onAnimationUpdate(ValueAnimator animation)
+			{
+				float fraction = animation.getAnimatedFraction();
+
+				mDegreesPaint.setStrokeWidth(STROKE_WIDTH + fraction * 80);
+				requestLayout();
+			}
+		});
+	}
+
+
+
+
+	@Override
+	protected void onFinishInflate()
+	{
+		super.onFinishInflate();
+
+	}
 
 	@Override
 	protected void onDraw(Canvas canvas) {
@@ -54,26 +83,15 @@ public class AnimateArcView extends View
 		// so in this case the new measured height and width values will be used:
 		if (mRect == null)
 		{
-			// take the minimum of width and height here to be on he safe side:
 			centerX = getMeasuredWidth()/ 2;
 			centerY = getMeasuredHeight()/ 2;
-			radius = Math.min(centerX,centerY);
+			radius = centerX - (2 * STROKE_WIDTH);
 
-			// mRect will define the drawing space for drawArc()
-			// We have to take into account the STROKE_WIDTH with drawArc() as well as drawCircle():
-			// circles as well as arcs are drawn 50% outside of the bounds defined by the radius (radius for arcs is calculated from the rectangle mRect).
-			// So if mRect is too large, the lines will not fit into the View
-			int startTop = STROKE_WIDTH / 2;
-			int startLeft = startTop;
-
-			int endBottom = 2 * radius - startTop;
-			int endRight = endBottom;
-
-			mRect = new RectF(startTop, startLeft, endRight, endBottom);
+			mRect = new RectF(centerX - radius, centerY - radius, centerX + radius, centerY + radius);
 		}
 
 		// just to show the rectangle bounds:
-		canvas.drawRect(mRect, mRectPaint);
+//		canvas.drawRect(mRect, mRectPaint);
 
 		// Or draw arc from degree 192 to degree 90 like this ( 258 = (360 - 192) + 90:
 		// canvas.drawArc(mRect, 192, 258, false, mBasePaint);
@@ -81,7 +99,7 @@ public class AnimateArcView extends View
 		// draw an arc from 90 degrees to 192 degrees (102 = 192 - 90)
 		// Note that these degrees are not like mathematical degrees:
 		// they are mirrored along the y-axis and so incremented clockwise (zero degrees is always on the right hand side of the x-axis)
-		canvas.drawArc(mRect, 120, 270, false, mDegreesPaint);
+		canvas.drawArc(mRect, 180, 180, false, mDegreesPaint);
 
 	}
 }
