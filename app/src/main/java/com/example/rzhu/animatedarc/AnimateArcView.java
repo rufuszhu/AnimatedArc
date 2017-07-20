@@ -5,11 +5,13 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.RectF;
+import android.os.Build;
 import android.support.annotation.NonNull;
 import android.support.v4.content.ContextCompat;
 import android.util.AttributeSet;
 import android.view.View;
 import android.view.animation.DecelerateInterpolator;
+import android.view.animation.Interpolator;
 
 /**
  * Created by rzhu on 7/19/2017.
@@ -17,10 +19,11 @@ import android.view.animation.DecelerateInterpolator;
 
 public class AnimateArcView extends View
 {
-	private static final int STROKE_WIDTH = 20;
-	private Paint mDegreesPaint, mRectPaint;
+	private Paint mFirstRipplePaint, mSecondRipplePaint, mFixArcPaint;
 	private RectF mRect;
-	private int centerX, centerY, radius;
+	private ValueAnimator mFirstRippleAnimator;
+	private ValueAnimator mSecondRippleAnimator;
+	private int mStrokeWidth;
 
 	public AnimateArcView(@NonNull Context context)
 	{
@@ -28,78 +31,114 @@ public class AnimateArcView extends View
 		init();
 	}
 
-	public AnimateArcView(Context context, AttributeSet attrs) {
+	public AnimateArcView(Context context, AttributeSet attrs)
+	{
 		super(context, attrs);
 		init();
 	}
 
 	private void init()
 	{
-		mRectPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-		mRectPaint.setColor(ContextCompat.getColor(getContext(), R.color.colorAccent));
-		mRectPaint.setStyle(Paint.Style.FILL);
+		mStrokeWidth = getResources().getDimensionPixelOffset(R.dimen.highlight_arc_stroke_width);
+		int pulseWidth = getResources().getDimensionPixelOffset(R.dimen.highlight_arc_pulse_width);
 
+		Interpolator interpolator = new DecelerateInterpolator();
+		mFirstRipplePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+		mFirstRipplePaint.setStyle(Paint.Style.STROKE);
+		mFirstRipplePaint.setStrokeWidth(mStrokeWidth);
+		mFirstRipplePaint.setStrokeCap(Paint.Cap.ROUND);
+		mFirstRipplePaint.setColor(ContextCompat.getColor(getContext(), R.color.highlight_gold));
 
-		mDegreesPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-		mDegreesPaint.setStyle(Paint.Style.STROKE);
-		mDegreesPaint.setStrokeWidth(STROKE_WIDTH);
-		mDegreesPaint.setStrokeCap(Paint.Cap.ROUND);
-		mDegreesPaint.setColor(ContextCompat.getColor(getContext(), R.color.highlight_yellow));
-	}
+		mSecondRipplePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+		mSecondRipplePaint.setStyle(Paint.Style.STROKE);
+		mSecondRipplePaint.setStrokeWidth(mStrokeWidth);
+		mSecondRipplePaint.setStrokeCap(Paint.Cap.ROUND);
+		mSecondRipplePaint.setColor(ContextCompat.getColor(getContext(), R.color.highlight_gold));
 
-	public void startAnimation(){
-		ValueAnimator valueAnimator = ValueAnimator.ofInt(STROKE_WIDTH, 100);
-		valueAnimator.setDuration(1000);
-		valueAnimator.setInterpolator(new DecelerateInterpolator());
+		mFixArcPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+		mFixArcPaint.setStyle(Paint.Style.STROKE);
+		mFixArcPaint.setStrokeWidth(mStrokeWidth);
+		mFixArcPaint.setStrokeCap(Paint.Cap.ROUND);
+		mFixArcPaint.setColor(ContextCompat.getColor(getContext(), R.color.highlight_gold));
 
-		valueAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener()
+		int animationLength = getResources().getInteger(R.integer.arc_pulse_animation_time);
+
+		mFirstRippleAnimator = ValueAnimator.ofFloat(mStrokeWidth, pulseWidth);
+		mFirstRippleAnimator.setDuration(animationLength);
+		mFirstRippleAnimator.setInterpolator(interpolator);
+		mFirstRippleAnimator.setRepeatMode(ValueAnimator.RESTART);
+		mFirstRippleAnimator.setRepeatCount(ValueAnimator.INFINITE);
+		mFirstRippleAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener()
 		{
 			public void onAnimationUpdate(ValueAnimator animation)
 			{
-				float fraction = animation.getAnimatedFraction();
+				mFirstRipplePaint.setStrokeWidth((Float) animation.getAnimatedValue());
+				mFirstRipplePaint.setAlpha((int) ((1f - animation.getAnimatedFraction()) * 256));
 
-				mDegreesPaint.setStrokeWidth(STROKE_WIDTH + fraction * 80);
-				requestLayout();
+				if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN)
+				{
+					postInvalidateOnAnimation();
+				}
+				else
+				{
+					postInvalidate();
+				}
+			}
+		});
+
+		mSecondRippleAnimator = ValueAnimator.ofFloat(mStrokeWidth, pulseWidth);
+		mSecondRippleAnimator.setDuration(animationLength);
+		mSecondRippleAnimator.setInterpolator(interpolator);
+		mSecondRippleAnimator.setRepeatMode(ValueAnimator.RESTART);
+		mSecondRippleAnimator.setRepeatCount(ValueAnimator.INFINITE);
+		mSecondRippleAnimator.setStartDelay(animationLength / 5 * 2);
+		mSecondRippleAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener()
+		{
+			public void onAnimationUpdate(ValueAnimator animation)
+			{
+				mSecondRipplePaint.setStrokeWidth((Float) animation.getAnimatedValue());
+				mSecondRipplePaint.setAlpha((int) ((1f - animation.getAnimatedFraction()) * 256));
+				if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN)
+				{
+					postInvalidateOnAnimation();
+				}
+				else
+				{
+					postInvalidate();
+				}
 			}
 		});
 	}
 
-
-
-
-	@Override
-	protected void onFinishInflate()
+	public void startAnimation()
 	{
-		super.onFinishInflate();
+		stopAnimation();
+		mFirstRippleAnimator.start();
+		mSecondRippleAnimator.start();
+	}
 
+	public void stopAnimation()
+	{
+		mFirstRippleAnimator.cancel();
+		mSecondRippleAnimator.cancel();
 	}
 
 	@Override
-	protected void onDraw(Canvas canvas) {
+	protected void onDraw(Canvas canvas)
+	{
 		super.onDraw(canvas);
 
-		// getHeight() is not reliable, use getMeasuredHeight() on first run:
-		// Note: mRect will also be null after a configuration change,
-		// so in this case the new measured height and width values will be used:
 		if (mRect == null)
 		{
-			centerX = getMeasuredWidth()/ 2;
-			centerY = getMeasuredHeight()/ 2;
-			radius = centerX - (2 * STROKE_WIDTH);
+			int centerX = getMeasuredWidth() / 2;
+			int centerY = getMeasuredHeight() - mStrokeWidth * 2;
+			int radius = getResources().getDimensionPixelOffset(R.dimen.highlight_arc_radius);
 
 			mRect = new RectF(centerX - radius, centerY - radius, centerX + radius, centerY + radius);
 		}
 
-		// just to show the rectangle bounds:
-//		canvas.drawRect(mRect, mRectPaint);
-
-		// Or draw arc from degree 192 to degree 90 like this ( 258 = (360 - 192) + 90:
-		// canvas.drawArc(mRect, 192, 258, false, mBasePaint);
-
-		// draw an arc from 90 degrees to 192 degrees (102 = 192 - 90)
-		// Note that these degrees are not like mathematical degrees:
-		// they are mirrored along the y-axis and so incremented clockwise (zero degrees is always on the right hand side of the x-axis)
-		canvas.drawArc(mRect, 180, 180, false, mDegreesPaint);
-
+		canvas.drawArc(mRect, 180, 180, false, mFirstRipplePaint);
+		canvas.drawArc(mRect, 180, 180, false, mSecondRipplePaint);
+		canvas.drawArc(mRect, 180, 180, false, mFixArcPaint);
 	}
 }

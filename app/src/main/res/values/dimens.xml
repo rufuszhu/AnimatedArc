@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<dimen name="highlight_arc_radius">72dp</dimen>
+	<dimen name="highlight_arc_height">90dp</dimen>
+	<dimen name="highlight_arc_stroke_width">5dp</dimen>
+	<dimen name="highlight_arc_pulse_width">20dp</dimen>
+
+</resources>

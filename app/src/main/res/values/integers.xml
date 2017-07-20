@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<integer name="arc_pulse_animation_time">2000</integer>
+	<integer name="dot_animation_half_time">100</integer>
+	<integer name="dot_animation_loop_offset_time">500</integer>
+
+
+</resources>
